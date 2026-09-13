@@ -79,6 +79,13 @@ public class SettingsActivity extends AppCompatActivity {
             prefs.edit().putBoolean("alarm_enabled", checked).apply();
         });
 
+        // Vibration toggle
+        Switch switchVibrate = findViewById(R.id.switchVibrate);
+        switchVibrate.setChecked(prefs.getBoolean("vibrate_enabled", true));
+        switchVibrate.setOnCheckedChangeListener((btn, checked) -> {
+            prefs.edit().putBoolean("vibrate_enabled", checked).apply();
+        });
+
         // Alarm sound picker
         tvAlarmName = findViewById(R.id.tvAlarmName);
         updateAlarmName();

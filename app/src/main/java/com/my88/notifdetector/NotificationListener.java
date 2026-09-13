@@ -149,9 +149,11 @@ public class NotificationListener extends NotificationListenerService {
         SharedPreferences prefs = getSharedPreferences("notif_detector_settings", MODE_PRIVATE);
         boolean alarmEnabled = prefs.getBoolean("alarm_enabled", true);
 
-        if (alarmEnabled && matched) {
-            playAlarmSound();
-            vibrate();
+        boolean vibrateEnabled = prefs.getBoolean("vibrate_enabled", true);
+
+        if (matched) {
+            if (alarmEnabled) playAlarmSound();
+            if (vibrateEnabled) vibrate();
         }
 
         Intent intent = new Intent(ACTION_NOTIFICATION_RECEIVED);
