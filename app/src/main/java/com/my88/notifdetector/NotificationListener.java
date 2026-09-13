@@ -1,16 +1,23 @@
 package com.my88.notifdetector;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.os.Vibrator;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -21,8 +28,87 @@ import java.util.Set;
 public class NotificationListener extends NotificationListenerService {
 
     private static final String TAG = "NotifDetector";
+    private static final String CHANNEL_ID = "notif_detector_service";
+    private static final int FOREGROUND_ID = 1001;
     public static final String ACTION_NOTIFICATION_RECEIVED = "com.my88.notifdetector.NOTIFICATION_RECEIVED";
     private MediaPlayer mediaPlayer;
+    private PowerManager.WakeLock wakeLock;
+
+    @Override
+    public void onListenerConnected() {
+        super.onListenerConnected();
+        startForegroundService();
+        acquireWakeLock();
+        Log.d(TAG, "NotificationListener connected and running in foreground");
+    }
+
+    @Override
+    public void onListenerDisconnected() {
+        super.onListenerDisconnected();
+        releaseWakeLock();
+        Log.d(TAG, "NotificationListener disconnected");
+    }
+
+    private void startForegroundService() {
+        createNotificationChannel();
+
+        Intent notifIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notifIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        SharedPreferences prefs = getSharedPreferences("notif_detector_settings", MODE_PRIVATE);
+        Set<String> keywords = prefs.getStringSet("filter_keywords", new HashSet<>());
+        String contentText = keywords.isEmpty()
+                ? "Monitoring all notifications"
+                : "Filtering: " + String.join(", ", keywords);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Notification Detector Active")
+                .setContentText(contentText)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .setSilent(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build();
+
+        try {
+            startForeground(FOREGROUND_ID, notification);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start foreground", e);
+        }
+    }
+
+    private void createNotificationChannel() {
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "Notification Detector Service",
+                NotificationManager.IMPORTANCE_LOW);
+        channel.setDescription("Keeps the notification detector running in background");
+        channel.setShowBadge(false);
+
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.createNotificationChannel(channel);
+        }
+    }
+
+    private void acquireWakeLock() {
+        if (wakeLock == null) {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            if (pm != null) {
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NotifDetector::ListenerLock");
+                wakeLock.acquire();
+            }
+        }
+    }
+
+    private void releaseWakeLock() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+            wakeLock = null;
+        }
+    }
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
