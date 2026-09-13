@@ -93,7 +93,9 @@ public class MainActivity extends AppCompatActivity {
                 String text = intent.getStringExtra("text");
                 String timestamp = intent.getStringExtra("timestamp");
 
+                boolean matched = intent.getBooleanExtra("matched", false);
                 NotificationItem item = new NotificationItem(appName, packageName, title, text, timestamp);
+                item.setMatched(matched);
                 adapter.addItem(item);
                 recyclerView.scrollToPosition(0);
                 updateCount();

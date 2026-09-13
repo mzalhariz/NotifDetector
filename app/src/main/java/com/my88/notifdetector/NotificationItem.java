@@ -9,6 +9,7 @@ public class NotificationItem {
     private String title;
     private String text;
     private String timestamp;
+    private boolean matched;
 
     public NotificationItem(String appName, String packageName, String title, String text, String timestamp) {
         this.appName = appName;
@@ -16,6 +17,7 @@ public class NotificationItem {
         this.title = title;
         this.text = text;
         this.timestamp = timestamp;
+        this.matched = false;
     }
 
     public String getAppName() { return appName; }
@@ -23,6 +25,8 @@ public class NotificationItem {
     public String getTitle() { return title; }
     public String getText() { return text; }
     public String getTimestamp() { return timestamp; }
+    public boolean isMatched() { return matched; }
+    public void setMatched(boolean matched) { this.matched = matched; }
 
     public JSONObject toJson() {
         JSONObject obj = new JSONObject();
@@ -32,6 +36,7 @@ public class NotificationItem {
             obj.put("title", title);
             obj.put("text", text);
             obj.put("timestamp", timestamp);
+            obj.put("matched", matched);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -40,13 +45,15 @@ public class NotificationItem {
 
     public static NotificationItem fromJson(JSONObject obj) {
         try {
-            return new NotificationItem(
+            NotificationItem item = new NotificationItem(
                     obj.optString("app_name", ""),
                     obj.optString("package_name", ""),
                     obj.optString("title", ""),
                     obj.optString("text", ""),
                     obj.optString("timestamp", "")
             );
+            item.setMatched(obj.optBoolean("matched", false));
+            return item;
         } catch (Exception e) {
             return null;
         }

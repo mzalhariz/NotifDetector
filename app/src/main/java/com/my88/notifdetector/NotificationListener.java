@@ -14,7 +14,9 @@ import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 public class NotificationListener extends NotificationListenerService {
 
@@ -28,7 +30,6 @@ public class NotificationListener extends NotificationListenerService {
 
         String packageName = sbn.getPackageName();
 
-        // Skip our own notifications
         if (packageName.equals(getPackageName())) return;
 
         Notification notification = sbn.getNotification();
@@ -45,7 +46,6 @@ public class NotificationListener extends NotificationListenerService {
             if (textCs != null) text = textCs.toString();
         }
 
-        // Get app label
         try {
             appName = getPackageManager()
                     .getApplicationLabel(getPackageManager().getApplicationInfo(packageName, 0))
@@ -58,38 +58,52 @@ public class NotificationListener extends NotificationListenerService {
 
         Log.d(TAG, "Notification from: " + appName + " | " + title + " | " + text);
 
-        // Check if alarm is enabled
+        boolean matched = matchesKeywords(title, text, appName);
+
         SharedPreferences prefs = getSharedPreferences("notif_detector_settings", MODE_PRIVATE);
         boolean alarmEnabled = prefs.getBoolean("alarm_enabled", true);
 
-        if (alarmEnabled) {
+        if (alarmEnabled && matched) {
             playAlarmSound();
             vibrate();
         }
 
-        // Broadcast to MainActivity
         Intent intent = new Intent(ACTION_NOTIFICATION_RECEIVED);
         intent.putExtra("app_name", appName);
         intent.putExtra("package_name", packageName);
         intent.putExtra("title", title);
         intent.putExtra("text", text);
         intent.putExtra("timestamp", timestamp);
+        intent.putExtra("matched", matched);
         sendBroadcast(intent);
 
-        // Save to storage
-        NotificationStorage.getInstance(this).addNotification(
-                new NotificationItem(appName, packageName, title, text, timestamp)
-        );
+        NotificationItem item = new NotificationItem(appName, packageName, title, text, timestamp);
+        item.setMatched(matched);
+        NotificationStorage.getInstance(this).addNotification(item);
+    }
+
+    private boolean matchesKeywords(String title, String text, String appName) {
+        SharedPreferences prefs = getSharedPreferences("notif_detector_settings", MODE_PRIVATE);
+        Set<String> keywords = prefs.getStringSet("filter_keywords", new HashSet<>());
+
+        if (keywords.isEmpty()) return true;
+
+        String combined = (title + " " + text + " " + appName).toLowerCase(Locale.getDefault());
+
+        for (String keyword : keywords) {
+            if (!keyword.trim().isEmpty() && combined.contains(keyword.trim().toLowerCase(Locale.getDefault()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
-        // Optional: handle notification dismissal
     }
 
     private void playAlarmSound() {
         try {
-            // Stop any currently playing alarm
             stopAlarm();
 
             SharedPreferences prefs = getSharedPreferences("notif_detector_settings", MODE_PRIVATE);
@@ -97,10 +111,8 @@ public class NotificationListener extends NotificationListenerService {
 
             Uri alarmUri;
             if (!uriStr.isEmpty()) {
-                // User selected custom alarm
                 alarmUri = Uri.parse(uriStr);
             } else {
-                // Default: police siren (system alarm sound)
                 alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
                 if (alarmUri == null) {
                     alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -113,7 +125,6 @@ public class NotificationListener extends NotificationListenerService {
             mediaPlayer.prepare();
             mediaPlayer.start();
 
-            // Auto-stop after duration
             int duration = prefs.getInt("alarm_duration", 3) * 1000;
             new android.os.Handler(getMainLooper()).postDelayed(this::stopAlarm, duration);
 

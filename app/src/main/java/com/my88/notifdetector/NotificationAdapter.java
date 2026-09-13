@@ -40,6 +40,14 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         holder.tvTitle.setText(item.getTitle());
         holder.tvText.setText(item.getText());
         holder.tvTimestamp.setText(item.getTimestamp());
+
+        if (item.isMatched()) {
+            holder.matchIndicator.setVisibility(View.VISIBLE);
+            holder.tvMatchBadge.setVisibility(View.VISIBLE);
+        } else {
+            holder.matchIndicator.setVisibility(View.GONE);
+            holder.tvMatchBadge.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -48,7 +56,8 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvAppName, tvTitle, tvText, tvTimestamp;
+        TextView tvAppName, tvTitle, tvText, tvTimestamp, tvMatchBadge;
+        View matchIndicator;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -56,6 +65,8 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvText = itemView.findViewById(R.id.tvText);
             tvTimestamp = itemView.findViewById(R.id.tvTimestamp);
+            tvMatchBadge = itemView.findViewById(R.id.tvMatchBadge);
+            matchIndicator = itemView.findViewById(R.id.matchIndicator);
         }
     }
 }
