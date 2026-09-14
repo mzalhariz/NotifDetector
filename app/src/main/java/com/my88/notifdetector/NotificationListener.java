@@ -6,6 +6,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -33,6 +36,8 @@ public class NotificationListener extends NotificationListenerService {
     public static final String ACTION_NOTIFICATION_RECEIVED = "com.my88.notifdetector.NOTIFICATION_RECEIVED";
     private MediaPlayer mediaPlayer;
     private PowerManager.WakeLock wakeLock;
+    private AudioManager audioManager;
+    private AudioFocusRequest audioFocusRequest;
 
     @Override
     public void onListenerConnected() {
@@ -145,16 +150,14 @@ public class NotificationListener extends NotificationListenerService {
         Log.d(TAG, "Notification from: " + appName + " | " + title + " | " + text);
 
         boolean matched = matchesKeywords(title, text, appName);
+        if (!matched) return;
 
         SharedPreferences prefs = getSharedPreferences("notif_detector_settings", MODE_PRIVATE);
         boolean alarmEnabled = prefs.getBoolean("alarm_enabled", true);
-
         boolean vibrateEnabled = prefs.getBoolean("vibrate_enabled", true);
 
-        if (matched) {
-            if (alarmEnabled) playAlarmSound();
-            if (vibrateEnabled) vibrate();
-        }
+        if (alarmEnabled) playAlarmSound();
+        if (vibrateEnabled) vibrate();
 
         Intent intent = new Intent(ACTION_NOTIFICATION_RECEIVED);
         intent.putExtra("app_name", appName);
@@ -207,7 +210,14 @@ public class NotificationListener extends NotificationListenerService {
                 }
             }
 
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            requestAudioFocus(audioAttributes);
+
             mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioAttributes(audioAttributes);
             mediaPlayer.setDataSource(this, alarmUri);
             mediaPlayer.setLooping(false);
             mediaPlayer.prepare();
@@ -221,6 +231,18 @@ public class NotificationListener extends NotificationListenerService {
         }
     }
 
+    private void requestAudioFocus(AudioAttributes audioAttributes) {
+        if (audioManager == null) {
+            audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        }
+        if (audioManager == null) return;
+
+        audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(audioAttributes)
+                .build();
+        audioManager.requestAudioFocus(audioFocusRequest);
+    }
+
     private void stopAlarm() {
         if (mediaPlayer != null) {
             try {
@@ -230,6 +252,10 @@ public class NotificationListener extends NotificationListenerService {
                 // ignore
             }
             mediaPlayer = null;
+        }
+        if (audioManager != null && audioFocusRequest != null) {
+            audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            audioFocusRequest = null;
         }
     }
 

@@ -34,16 +34,17 @@ Datacenter technicians at MY88 receive critical alerts (e.g., Raptor alarms, sys
 ## Features
 
 ### 1. Notification Capture (Background Service)
-- Captures **all notifications** from every app on the phone
+- Listens to **all notifications** from every app on the phone
 - Runs as a **foreground service** with persistent status bar notification
 - **Wake lock** keeps the service alive even when screen is off
 - **Auto-restart** after phone reboot via Boot Receiver
-- Logs: App Name, Package Name, Title, Text, Timestamp
+- Only notifications that pass the keyword filter (see below) are logged: App Name, Package Name, Title, Text, Timestamp — non-matching notifications are discarded and never stored
 
 ### 2. Keyword Filter
-- User-defined keywords to filter which notifications trigger the alarm
+- User-defined keywords to filter which notifications are captured, logged, and trigger the alarm
 - **Case-insensitive** matching against notification title, text, and app name
-- If **no keywords** are set, alarm triggers on ALL notifications
+- If **no keywords** are set, ALL notifications are captured and trigger the alarm
+- Non-matching notifications are dropped entirely — not stored, not shown in the list, not exported
 - Add, remove, and clear keywords from Settings
 - Examples: `raptor`, `alarm`, `critical`, `down`, `fault`, `emergency`
 
@@ -60,8 +61,8 @@ Datacenter technicians at MY88 receive critical alerts (e.g., Raptor alarms, sys
 - Independent ON/OFF toggle (separate from alarm sound)
 
 ### 5. Notification List (Main Screen)
-- Displays all captured notifications in a scrollable list (newest first)
-- **MATCH badge** with orange indicator bar on keyword-matched notifications
+- Displays only keyword-matched notifications in a scrollable list (newest first) — non-matches never reach the list
+- **MATCH badge** with orange indicator bar on displayed notifications
 - Shows: App Name, Title, Text, Timestamp
 - **Real-time updates** via broadcast receiver
 
@@ -184,3 +185,4 @@ Datacenter technicians at MY88 receive critical alerts (e.g., Raptor alarms, sys
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-09-13 | Initial release — notification capture, keyword filter, alarm, vibration, export, foreground service |
+| 1.1 | 2026-09-15 | Non-matching notifications are now dropped entirely instead of being logged with no badge; alarm sound switched to the ALARM audio stream with audio focus request so it plays reliably even when the app isn't in the foreground |
