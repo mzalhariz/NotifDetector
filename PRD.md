@@ -52,7 +52,7 @@ Datacenter technicians at MY88 receive critical alerts (e.g., Raptor alarms, sys
 - Plays alarm sound when a **matched** notification is detected
 - **Customizable**: user can pick any ringtone/alarm/notification sound from their phone
 - **Default**: System alarm sound
-- **Adjustable duration**: 1 to 10 seconds (default: 3 seconds)
+- **Adjustable duration**: 1 to 60 seconds (default: 3 seconds); sound loops for the full duration regardless of the underlying clip length
 - Independent ON/OFF toggle
 
 ### 4. Vibration

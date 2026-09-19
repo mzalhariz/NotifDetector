@@ -216,15 +216,22 @@ public class NotificationListener extends NotificationListenerService {
                     .build();
             requestAudioFocus(audioAttributes);
 
+            int durationMs = prefs.getInt("alarm_duration", 3) * 1000;
+
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setAudioAttributes(audioAttributes);
             mediaPlayer.setDataSource(this, alarmUri);
-            mediaPlayer.setLooping(false);
-            mediaPlayer.prepare();
-            mediaPlayer.start();
-
-            int duration = prefs.getInt("alarm_duration", 3) * 1000;
-            new android.os.Handler(getMainLooper()).postDelayed(this::stopAlarm, duration);
+            mediaPlayer.setLooping(true);
+            mediaPlayer.setOnPreparedListener(mp -> {
+                mp.start();
+                new android.os.Handler(getMainLooper()).postDelayed(this::stopAlarm, durationMs);
+            });
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.e(TAG, "MediaPlayer error: what=" + what + " extra=" + extra);
+                stopAlarm();
+                return true;
+            });
+            mediaPlayer.prepareAsync();
 
         } catch (Exception e) {
             Log.e(TAG, "Error playing alarm sound", e);

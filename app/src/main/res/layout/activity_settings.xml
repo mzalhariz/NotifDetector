@@ -315,7 +315,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:min="1"
-                    android:max="10"
+                    android:max="60"
                     android:progress="3"
                     android:progressTint="#FF6A00"
                     android:thumbTint="#FF6A00"
@@ -339,7 +339,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="10s"
+                        android:text="60s"
                         android:textSize="10sp"
                         android:textColor="#555555"
                         android:gravity="end" />
